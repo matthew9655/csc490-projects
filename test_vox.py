@@ -1,12 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import os
 
 from detection.dataset import PandasetDataset
 from detection.model import DetectionModelConfig
 
 if __name__ == "__main__":
-    data_root = "./dataset"
+    data_root = os.path.dirname('/u/csc490h/dataset/')
     model_config = DetectionModelConfig()
     dataset = PandasetDataset(data_root, model_config)
     test_vox = dataset[0][0][0].numpy()
