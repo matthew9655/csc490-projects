@@ -30,7 +30,21 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
         An [H x W] heatmap tensor, normalized such that its peak is 1.
     """
     # TODO: Replace this stub code.
-    return torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
+    # TODO: test this
+    power = torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
+    c1, c2 = center
+
+    for i in range(grid_coords.size()[0]):
+        for j in range(grid_coords.size()[1]):
+            x,y = grid_coords[i, j, :]
+            power[i,j] = -((x-c1*x)^2 + (y-c1*y)^2) / scale
+
+    heatmap = torch.exp(power)
+    #normalize heatmap
+    heatmap = heatmap/torch.max(heatmap)
+
+    return heatmap
+    #return torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
 
 
 class DetectionLossTargetBuilder:
