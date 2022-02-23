@@ -29,7 +29,11 @@ def heatmap_weighted_mse_loss(
             weighted average using the provided `heatmap`.
     """
     # TODO: Replace this stub code.
-    return torch.sum(predictions) * 0.0
+    #return torch.sum(predictions) * 0.0
+    M = len(heatmap[heatmap>heatmap_threshold])
+    weights = torch.where(heatmap > heatmap_threshold, heatmap, 0 )
+    MSE = torch.sum(weights*(predictions-target)**2))/M
+    return MSE
 
 
 @dataclass
