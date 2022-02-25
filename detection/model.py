@@ -118,8 +118,11 @@ class DetectionModel(nn.Module):
         """
         # TODO: Replace this stub code.
         
-        pred = forward(bev_lidar) 
-        H, W = pred.shape()[1], pred.shape()[2]
+        D, H, W  = bev_lidar.size()
+        input_lidar = bev_lidar.reshape((1,D,H,W))
+        pred = self.forward(input_lidar)
+        pred = pred.reshape((7,H,W))
+        #H, W = pred.shape()[1], pred.shape()[2]
 
         #finding co-ordinates of local maximums
         localmaxes = torch.empty(1,2)
@@ -127,10 +130,11 @@ class DetectionModel(nn.Module):
         for i in range(2,H-3):
             for j in range(2, W-3):
                 square= pred[0,i-2:i+3,j-2:j+3] #5 by 5
-                loc_max = torch.max(square)
-                if pred[0,i,j] == loc_max and loc_max > score_threshold: #not including detections with score less than threshold
-                    co-ordinates = torch.tensor([[i,j]])
-                    localmaxes = torch.cat((localmaxes, co-ordinates))
+                vals = torch.flatten(square)
+                loc_max = torch.max(vals)
+                if (pred[0,i,j] == loc_max).all() and (loc_max > score_threshold).all(): #not including detections with score less than threshold
+                    coordinates = torch.tensor([[i,j]])
+                    localmaxes = torch.cat((localmaxes, coordinates))
                     heatmapvals.append(pred[0,i,j])
         
         localmaxes = localmaxes[1:,:]
@@ -138,7 +142,7 @@ class DetectionModel(nn.Module):
 
         #getting top k 
         if len(heatmapvals)> k:
-            topk = torch.empty(k,2)
+            topk = torch.empty((k,2))
             topk_vals, topk_indices = torch.topk(heatmapvals, k)
             for i in range(k):
                 idx = topk_indices[i]
@@ -146,14 +150,14 @@ class DetectionModel(nn.Module):
         else:
             topk = localmaxes 
         
-        N = topk.shape()[0]
+        N = topk.size()[0]
         centroids = torch.clone(topk)
         yaws = torch.zeros(N)
         boxes = torch.zeros(N,2)
         scores = torch.zeros(N)
 
         for i in range(N):
-            x, y = topk[i,:]
+            x, y = topk[i,:].int()
             scores[i] = pred[0,x,y]
             yaws[i] = torch.atan2(pred[5,x,y],pred[6,x,y])
             boxes[i,0] = pred[3,x,y]

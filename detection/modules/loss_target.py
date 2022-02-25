@@ -32,11 +32,13 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
     # TODO: Replace this stub code.
     # TODO: test this
     power = torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
+    center = center.int()
+    grid_coords = grid_coords.int()
     cx, cy = center
 
     for i in range(grid_coords.size()[0]):
         for j in range(grid_coords.size()[1]):
-            x,y = grid_coords[i, j, :]
+            x, y = grid_coords[i, j, :]
             power[i,j] = -((x-cx)^2 + (y-cy)^2) / scale
 
     heatmap = torch.exp(power)
@@ -124,13 +126,13 @@ class DetectionLossTargetBuilder:
         for i in range(H):
             for j in range(W):
                 if heatmap[i,j]> self._heatmap_threshold:
-                    offsets[i,j,:] = [cx - i, cy - j]
-                    sizes[i,j,:] = [x_size, y_size]
-                    headings[i,j,:] = [math.sin(yaw), math.cos(yaw)]
+                    offsets[i,j,:] = torch.tensor([cx - i, cy - j])
+                    sizes[i,j,:] = torch.tensor([x_size, y_size])
+                    headings[i,j,:] = torch.tensor([math.sin(yaw), math.cos(yaw)])
                 else:
-                    offsets[i,j,:] = [0, 0] 
-                    sizes[i,j,:] =  [0,0]
-                    headings[i,j,:] = [0,0]
+                    offsets[i,j,:] = torch.tensor([0, 0])
+                    sizes[i,j,:] =  torch.tensor([0, 0])
+                    headings[i,j,:] = torch.tensor([0, 0])
 
         
         #offsets = torch.zeros(H, W, 2)
