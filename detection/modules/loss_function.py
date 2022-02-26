@@ -38,8 +38,7 @@ def heatmap_weighted_mse_loss(
     squared = torch.pow(diff,2)
     mse_loss = torch.sum(squared, dim=1)
     mask = torch.where(heatmap_ > heatmap_threshold, heatmap_, torch.tensor(0.))
-    mse_loss = mask*(torch.sum(squared, dim=1))
-    scalar_loss = torch.sum(mse_loss)/M
+    scalar_loss = torch.sum(mask*mse_loss)/M
     return scalar_loss
 
 
