@@ -85,13 +85,8 @@ class Voxelizer(torch.nn.Module):
             for j in range(pc.size()[0]):
                 x, y, z = pc[j]
                 if self._x_min <= x <= self._x_max and self._y_min <= y <= self._y_max:
-                    vi = math.floor(
-                        (
-                            torch.clip(z, self._z_min, self._depth - 1).item()
-                            - self._z_min
-                        )
-                        / self._step
-                    )
+                    vi = math.floor((z - self._z_min) / self.step)
+                    vi = torch.clip(vi, 0, self._depth - 1)
                     vj = math.floor((self._y_max - y) / self._step)
                     vk = math.floor((x - self._x_min) / self._step)
 
