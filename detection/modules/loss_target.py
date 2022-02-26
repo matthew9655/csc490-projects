@@ -31,18 +31,11 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
         An [H x W] heatmap tensor, normalized such that its peak is 1.
     """
     # TODO: Replace this stub code.
-    # TODO: test this
-    # power = torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
-    # center = center.int()
-    # grid_coords = grid_coords.int()
-    # cx, cy = center
+    power = torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
+    center = center.int()
+    grid_coords = grid_coords.int()
+    cx, cy = center
 
-    # for i in range(grid_coords.size()[0]):
-    #     for j in range(grid_coords.size()[1]):
-    #         x, y = grid_coords[i, j, :]
-    #         power[i, j] = -((x - cx) ^ 2 + (y - cy) ^ 2) / scale
-
-<<<<<<< HEAD
     for i in range(grid_coords.size()[0]):
         for j in range(grid_coords.size()[1]):
             x, y = grid_coords[i, j, :]
@@ -51,21 +44,8 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
     heatmap = torch.exp(power)
     vals  = torch.flatten(heatmap)
     heatmap = heatmap/torch.max(vals) #normalize heatmap
-=======
-    # heatmap = torch.exp(power)
-    # heatmap = heatmap / torch.max(heatmap)  # normalize heatmap
 
-    H, W, _ = grid_coords.size()
-    cx, cy = center
-    heatmap = torch.zeros((H, W))
->>>>>>> main
-
-    for i in range(H):
-        for j in range(W):
-            power = -((i - cx) ** 2 + (j - cy) ** 2) / scale
-            heatmap[i, j] = torch.exp(power)
-
-    return heatmap / torch.max(heatmap)  # normalize heatmap
+    return heatmap 
 
 
 class DetectionLossTargetBuilder:
