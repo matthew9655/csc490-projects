@@ -31,10 +31,18 @@ def heatmap_weighted_mse_loss(
     # TODO: Replace this stub code.
     #return torch.sum(predictions) * 0.0
     heatmap = heatmap.float()
+    A,B,C,D = heatmap.size()
+    heatmap_ = heatmap.reshape(A,C,D)
     M = len(heatmap[heatmap>heatmap_threshold])
-    weights = torch.where(heatmap > heatmap_threshold, heatmap, torch.tensor(0.))
-    MSE = torch.sum(weights*(predictions-targets)**2)/M
-    return MSE
+    diff = torch.sub(predictions,targets)
+    squared = torch.pow(diff,2)
+    mse_loss = torch.sum(squared, dim=1)/ (predictions.size()[0])
+
+    mask = torch.where(heatmap_ > heatmap_threshold, heatmap_, torch.tensor(0.))
+    mse_loss = mask*(torch.sum(squared, dim=1))
+    scalar_loss = torch.sum(mse_loss)/M
+    return scalar_loss
+
 
 
 @dataclass
