@@ -112,9 +112,6 @@ class DetectionLossTargetBuilder:
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
         heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
 
-        plt.figure()
-        plt.matshow(heatmap, origin="lower")
-        plt.savefig("plots/test_heatmap")
 
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals
