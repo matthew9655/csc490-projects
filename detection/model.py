@@ -117,54 +117,58 @@ class DetectionModel(nn.Module):
             A set of 2D bounding box detections.
         """
         # TODO: Replace this stub code.
-        
-        D, H, W  = bev_lidar.size()
-        input_lidar = bev_lidar.reshape((1,D,H,W))
-        pred = self.forward(input_lidar)
-        pred = pred.reshape((7,H,W))
-        #H, W = pred.shape()[1], pred.shape()[2]
 
-        #finding co-ordinates of local maximums
-        localmaxes = torch.empty(1,2)
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+
+        D, H, W = bev_lidar.size()
+        input_lidar = bev_lidar.reshape((1, D, H, W))
+        pred = self.forward(input_lidar)
+        pred = pred.reshape((7, H, W))
+        # H, W = pred.shape()[1], pred.shape()[2]
+
+        # finding co-ordinates of local maximums
+        localmaxes = torch.empty(1, 2)
         heatmapvals = []
-        for i in range(2,H-3):
-            for j in range(2, W-3):
-                square= pred[0,i-2:i+3,j-2:j+3] #5 by 5
+        for i in range(2, H - 3):
+            for j in range(2, W - 3):
+                square = pred[0, i - 2 : i + 3, j - 2 : j + 3]  # 5 by 5
                 vals = torch.flatten(square)
                 loc_max = torch.max(vals)
-                if (pred[0,i,j] == loc_max).all() and (loc_max > score_threshold).all(): #not including detections with score less than threshold
-                    coordinates = torch.tensor([[i,j]])
+                if (pred[0, i, j] == loc_max).all() and (
+                    loc_max > score_threshold
+                ).all():  # not including detections with score less than threshold
+                    coordinates = torch.tensor([[i, j]])
                     localmaxes = torch.cat((localmaxes, coordinates))
-                    heatmapvals.append(pred[0,i,j])
-        
-        localmaxes = localmaxes[1:,:]
+                    heatmapvals.append(pred[0, i, j])
+
+        localmaxes = localmaxes[1:, :]
         heatmapvals = torch.tensor(heatmapvals)
 
-        #getting top k 
-        if len(heatmapvals)> k:
-            topk = torch.empty((k,2))
+        # getting top k
+        if len(heatmapvals) > k:
+            topk = torch.empty((k, 2))
             topk_vals, topk_indices = torch.topk(heatmapvals, k)
             for i in range(k):
                 idx = topk_indices[i]
-                topk[i,:] = localmaxes[idx,:]
+                topk[i, :] = localmaxes[idx, :]
         else:
-            topk = localmaxes 
-        
+            topk = localmaxes
+
         N = topk.size()[0]
-        centroids = torch.clone(topk)
+        centroids = torch.clone(topk).to(device)
         yaws = torch.zeros(N)
-        boxes = torch.zeros(N,2)
+        boxes = torch.zeros(N, 2)
         scores = torch.zeros(N)
 
         for i in range(N):
-            x, y = topk[i,:].int()
-            scores[i] = pred[0,x,y]
-            yaws[i] = torch.atan2(pred[5,x,y],pred[6,x,y])
-            boxes[i,0] = pred[3,x,y]
-            boxes[i,1] = pred[4,x,y]
-            centroids[i,0] += pred[1,x,y]
-            centroids[i,1] += pred[2,x,y]
+            x, y = topk[i, :].int()
+            scores[i] = pred[0, x, y]
+            yaws[i] = torch.atan2(pred[5, x, y], pred[6, x, y])
+            boxes[i, 0] = pred[3, x, y]
+            boxes[i, 1] = pred[4, x, y]
+            centroids[i, 0] += pred[1, x, y]
+            centroids[i, 1] += pred[2, x, y]
 
-        return Detections(centroids, yaws, boxes, scores)       
-        
-
+        return Detections(centroids, yaws, boxes, scores)
