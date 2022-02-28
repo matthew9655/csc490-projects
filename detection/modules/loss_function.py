@@ -4,6 +4,8 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 
 def heatmap_weighted_mse_loss(
     targets: Tensor, predictions: Tensor, heatmap: Tensor, heatmap_threshold: float
@@ -29,18 +31,25 @@ def heatmap_weighted_mse_loss(
             weighted average using the provided `heatmap`.
     """
     # TODO: Replace this stub code.
-    #return torch.sum(predictions) * 0.0
-    heatmap = heatmap.float()
-    A,B,C,D = heatmap.size()
-    heatmap_ = heatmap.reshape(A,C,D)
-    M = len(heatmap[heatmap>heatmap_threshold])
-    diff = torch.sub(predictions,targets)
-    squared = torch.pow(diff,2)
-    mse_loss = torch.sum(squared, dim=1)
-    mask = torch.where(heatmap_ > heatmap_threshold, heatmap_, torch.tensor(0.))
-    scalar_loss = torch.sum(mask*mse_loss)/M
-    return scalar_loss
+    # return torch.sum(predictions) * 0.0
+    # heatmap = heatmap.float()
+    # A, B, C, D = heatmap.size()
+    # heatmap_ = heatmap.reshape(A, C, D)
+    # M = len(heatmap[heatmap > heatmap_threshold])
+    # diff = torch.sub(predictions, targets)
+    # squared = torch.pow(diff, 2)
+    # mse_loss = torch.sum(squared, dim=1)
+    # mask = torch.where(
+    #     heatmap_ > heatmap_threshold, heatmap_, torch.tensor(0.0).to(device)
+    # )
+    # scalar_loss = torch.sum(mask * mse_loss) / M
+    # return scalar_loss
 
+    mse_loss = torch.sum((predictions - targets) ** 2, dim=1)
+    heatmap = torch.flatten(heatmap, start_dim=1, end_dim=2)
+    mask = heatmap.gt(heatmap_threshold)
+    num = torch.count_nonzero(mask)
+    return torch.sum(mask * heatmap * mse_loss) / num
 
 
 @dataclass

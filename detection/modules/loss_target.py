@@ -31,21 +31,20 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
         An [H x W] heatmap tensor, normalized such that its peak is 1.
     """
     # TODO: Replace this stub code.
-    power = torch.zeros_like(grid_coords[:, :, 0], dtype=torch.float)
-    center = center.int()
+    H, W, _ = grid_coords.size()
+    power = torch.zeros((H, W))
     grid_coords = grid_coords.int()
-    cx, cy = center
+    cx, cy = center.int()
 
-    for i in range(grid_coords.size()[0]):
-        for j in range(grid_coords.size()[1]):
-            x, y = grid_coords[i, j, :]
-            power[i,j] = -((x-cx)**2 + (y-cy)**2) / scale
+    x = grid_coords[:, :, 0]
+    y = grid_coords[:, :, 1]
 
+    power = -((x - cx) ** 2 + (y - cy) ** 2) / scale
     heatmap = torch.exp(power)
-    vals  = torch.flatten(heatmap)
-    heatmap = heatmap/torch.max(vals) #normalize heatmap
 
-    return heatmap 
+    vals = torch.flatten(heatmap)
+
+    return heatmap / torch.max(vals)
 
 
 class DetectionLossTargetBuilder:
@@ -112,7 +111,6 @@ class DetectionLossTargetBuilder:
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
         heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
 
-
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals
         # (cx - i, cy - j) if the heatmap value at (i, j) exceeds self._heatmap_threshold.
@@ -127,13 +125,26 @@ class DetectionLossTargetBuilder:
         for i in range(H):
             for j in range(W):
                 if heatmap[i, j] > self._heatmap_threshold:
-                    offsets[i, j, :] = torch.tensor([cx - i, cy - j])
-                    sizes[i, j, :] = torch.tensor([x_size, y_size])
-                    headings[i, j, :] = torch.tensor([math.sin(yaw), math.cos(yaw)])
-                else:
-                    offsets[i, j, :] = torch.tensor([0, 0])
-                    sizes[i, j, :] = torch.tensor([0, 0])
-                    headings[i, j, :] = torch.tensor([0, 0])
+                    offsets[i, j, 0] = cx - j
+                    offsets[i, j, 1] = cy - i
+                    sizes[i, j, 0] = x_size
+                    sizes[i, j, 1] = y_size
+                    headings[i, j, 0] = math.sin(yaw)
+                    headings[i, j, 1] = math.cos(yaw)
+
+        # sizes = torch.zeros(H, W, 2)
+        # headings = torch.zeros(H, W, 2)
+
+        # for i in range(H):
+        #     for j in range(W):
+        #         if heatmap[i, j] > self._heatmap_threshold:
+        #             offsets[i, j, :] = torch.tensor([cx - i, cy - j])
+        #             sizes[i, j, :] = torch.tensor([x_size, y_size])
+        #             headings[i, j, :] = torch.tensor([math.sin(yaw), math.cos(yaw)])
+        #         else:
+        #             offsets[i, j, :] = torch.tensor([0, 0])
+        #             sizes[i, j, :] = torch.tensor([0, 0])
+        #             headings[i, j, :] = torch.tensor([0, 0])
 
         # offsets = torch.zeros(H, W, 2)
 
@@ -144,7 +155,6 @@ class DetectionLossTargetBuilder:
         # the target size equals (0, 0) instead.
 
         # TODO: Replace this stub code.
-        # sizes = torch.zeros(H, W, 2)
 
         # 5. Create heading training targets.
         # Given the label's heading angle yaw, the target heading at pixel (i, j)
@@ -153,7 +163,6 @@ class DetectionLossTargetBuilder:
         # the target heading equals (0, 0) instead.
 
         # TODO: Replace this stub code.
-        # headings = torch.zeros(H, W, 2)
 
         # 6. Concatenate training targets into a [7 x H x W] tensor.
         targets = torch.cat([heatmap[:, :, None], offsets, sizes, headings], dim=-1)
