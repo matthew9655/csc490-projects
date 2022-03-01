@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from multiprocessing import pool
 
 import torch
 from torch import Tensor, nn
@@ -125,31 +126,39 @@ class DetectionModel(nn.Module):
         D, H, W = bev_lidar.size()
         input_lidar = bev_lidar.reshape((1, D, H, W))
         pred = self.forward(input_lidar)
-        pred = pred.reshape((7, H, W))
-        # H, W = pred.shape()[1], pred.shape()[2]
 
-        # finding co-ordinates of local maximums
-        localmaxes = torch.empty(1, 2)
-        heatmapvals = []
-        for i in range(2, H - 3):
-            for j in range(2, W - 3):
-                square = pred[0, i - 2 : i + 3, j - 2 : j + 3]  # 5 by 5
-                vals = torch.flatten(square)
-                loc_max = torch.max(vals)
-                if (pred[0, i, j] == loc_max).all() and (
-                    loc_max > score_threshold
-                ).all():  # not including detections with score less than threshold
-                    coordinates = torch.tensor([[i, j]])
-                    localmaxes = torch.cat((localmaxes, coordinates))
-                    heatmapvals.append(pred[0, i, j])
+        heatmap = pred[:, 0, :, :]
+        max_pool = torch.nn.MaxPool2d(5, stride=1, padding=2)
+        pooled_heatmap = max_pool(heatmap)
+        heatmap = heatmap.reshape(H, W)
+        pooled_heatmap = pooled_heatmap.reshape(H, W)
 
-        localmaxes = localmaxes[1:, :]
-        heatmapvals = torch.tensor(heatmapvals)
+        max_values_pre_thres = torch.where(
+            heatmap == pooled_heatmap, heatmap, torch.tensor(0.0).to(device)
+        )
+
+        max_values = torch.where(
+            max_values_pre_thres > score_threshold,
+            max_values_pre_thres,
+            torch.tensor(0.0).to(device),
+        )
+
+        localmaxes = max_values.nonzero()
+        heatmapvals = torch.tensor([])
+        if localmaxes.size()[0] > 0:
+            first_max_dim = localmaxes[:, 0]
+            sec_max_dim = localmaxes[:, 1]
+            heatmapvals = torch.cat(
+                [
+                    pooled_heatmap[x, y].unsqueeze(0)
+                    for x, y in zip(first_max_dim, sec_max_dim)
+                ]
+            )
 
         # getting top k
         if len(heatmapvals) > k:
-            topk = torch.empty((k, 2))
-            topk_vals, topk_indices = torch.topk(heatmapvals, k)
+            topk = torch.zeros((k, 2))
+            _, topk_indices = torch.topk(heatmapvals, k)
             for i in range(k):
                 idx = topk_indices[i]
                 topk[i, :] = localmaxes[idx, :]
@@ -162,14 +171,16 @@ class DetectionModel(nn.Module):
         boxes = torch.zeros(N, 2)
         scores = torch.zeros(N)
 
+        pred = pred.reshape((7, H, W))
+
         for i in range(N):
             x, y = topk[i, :].int()
             scores[i] = pred[0, x, y]
             yaws[i] = torch.atan2(pred[5, x, y], pred[6, x, y])
             boxes[i, 0] = pred[3, x, y]
             boxes[i, 1] = pred[4, x, y]
-            centroidx = centroids[i, 0]+ pred[1, x, y]
-            centroidy = centroids[i, 1]+ pred[2, x, y]
+            centroidx = centroids[i, 0] + pred[1, x, y]
+            centroidy = centroids[i, 1] + pred[2, x, y]
             centroids[i, 0] = centroidy
             centroids[i, 1] = centroidx
 

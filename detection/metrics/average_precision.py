@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from ssl import DER_cert_to_PEM_cert
 from typing import List
 
 import torch
@@ -29,6 +30,10 @@ class AveragePrecisionMetric:
 
     ap: float
     pr_curve: PRCurve
+
+
+def eucli_dist(lx, ly, dx, dy):
+    return torch.sqrt((lx - dx) ** 2 + (ly - dy) ** 2)
 
 
 def compute_precision_recall_curve(
@@ -62,7 +67,47 @@ def compute_precision_recall_curve(
         A precision/recall curve.
     """
     # TODO: Replace this stub code.
-    return PRCurve(torch.zeros(0), torch.zeros(0))
+    # return PRCurve(torch.zeros(0), torch.zeros(0))
+    n = len(frames)
+    detections = torch.empty(1, 2)
+    FN = 0
+
+    for i in range(n):
+        temp_detect = frames[i].detections
+        label_cents = frames[i].labels.centroids
+
+        TP_arr = torch.zeros(len(temp_detect))
+
+        for cent in label_cents:
+            ed = eucli_dist(
+                cent[0], cent[1], temp_detect.centroids_x, temp_detect.centroids_y
+            )
+
+            ed = torch.where(ed < threshold, ed, torch.tensor(0.0))
+
+            if not ed.count_nonzero():
+                FN += 1
+                continue
+
+            max_idx = torch.argmax(ed)
+            TP_arr[max_idx] = 1
+
+        scores_concat = torch.stack((TP_arr, temp_detect.scores), dim=-1)
+        detections = torch.cat(detections, scores_concat)
+
+    detections = torch.sort(detections[1, :], dim=1, descending=True)
+
+    m = detections.size()[0]
+
+    precision = torch.zeros(m)
+    recall = torch.zeros(m)
+
+    for i in range(m):
+        TP = torch.count_nonzero(detections[:, 0])
+        precision[i] = TP / m
+        recall[i] = TP / TP + FN
+
+    return PRCurve(precision, recall)
 
 
 def compute_area_under_curve(curve: PRCurve) -> float:
@@ -81,7 +126,15 @@ def compute_area_under_curve(curve: PRCurve) -> float:
         The area under the curve, as defined above.
     """
     # TODO: Replace this stub code.
-    return torch.sum(curve.recall).item() * 0.0
+    p = PRCurve.precision
+    r = PRCurve.recall
+    r[0] = 0
+    sums = 0
+
+    for i in range(1, p.size()[0]):
+        sums += (r[i] - r[i - 1]) * p[i]
+
+    return sums
 
 
 def compute_average_precision(
@@ -98,4 +151,6 @@ def compute_average_precision(
         A dataclass consisting of a PRCurve and its average precision.
     """
     # TODO: Replace this stub code.
-    return AveragePrecisionMetric(0.0, PRCurve(torch.zeros(0), torch.zeros(0)))
+    pr_curve = compute_precision_recall_curve(frames, threshold)
+    ap = compute_area_under_curve(pr_curve)
+    return AveragePrecisionMetric(ap, pr_curve)

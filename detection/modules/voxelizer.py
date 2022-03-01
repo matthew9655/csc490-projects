@@ -77,20 +77,50 @@ class Voxelizer(torch.nn.Module):
         """
         # TODO: Replace this stub code.
         n = len(pointclouds)
-
         BEVs = torch.zeros(n, self._depth, self._height, self._width)
 
         for i in range(n):
             pc = pointclouds[i]
-            for j in range(pc.size()[0]):
-                x, y, z = pc[j]
-                if self._x_min <= x <= self._x_max and self._y_min <= y <= self._y_max:
-                    vi = math.floor((z - self._z_min) / self._step)
-                    vi = torch.clip(torch.tensor(vi), 0, self._depth - 1).item()
-                    vj = math.floor((self._y_max - y) / self._step)
-                    vk = math.floor((x - self._x_min) / self._step)
+            x, y, z = pc[:, 0], pc[:, 1], pc[:, 2]
 
-                    BEVs[i, vi, vj, vk] = 1
+            bev_x = torch.floor((x - self._x_min) / self._step)
+            bev_x = torch.clip(bev_x, 0, self._width - 1)
+            bev_y = torch.floor((self._y_max - y) / self._step)
+            bev_y = torch.clip(bev_y, 0, self._height - 1)
+            bev_z = torch.floor((z - self._z_min) / self._step)
+            bev_z = torch.clip(bev_z, 0, self._depth - 1)
+
+            cx1 = x.ge(self._x_min)
+            cx2 = x.le(self._x_max)
+            mask_x = torch.all(torch.stack((cx1, cx2), dim=-1), dim=1)
+
+            cy1 = y.ge(self._y_min)
+            cy2 = y.le(self._y_max)
+            mask_y = torch.all(torch.stack((cy1, cy2), dim=-1), dim=1)
+
+            total_mask = mask_x * mask_y
+
+            wanted_idxs = total_mask.nonzero().flatten()
+
+            stacked_bevs = torch.stack((bev_z, bev_y, bev_x), dim=-1)
+            stacked_bevs = stacked_bevs.long()
+
+            BEV_idx = torch.index_select(stacked_bevs, 0, wanted_idxs)
+
+            for j in range(BEV_idx.size()[0]):
+                BEVs[i, BEV_idx[j, 0], BEV_idx[j, 1], BEV_idx[j, 2]] = 1
+
+        # for i in range(n):
+        #     pc = pointclouds[i]
+        #     for j in range(pc.size()[0]):
+        #         x, y, z = pc[j]
+        #         if self._x_min <= x <= self._x_max and self._y_min <= y <= self._y_max:
+        #             vi = math.floor((z - self._z_min) / self._step)
+        #             vi = torch.clip(torch.tensor(vi), 0, self._depth - 1).item()
+        #             vj = math.floor((self._y_max - y) / self._step)
+        #             vk = math.floor((x - self._x_min) / self._step)
+
+        #             BEVs[i, vi, vj, vk] = 1
 
         return BEVs
 

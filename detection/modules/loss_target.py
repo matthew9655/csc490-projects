@@ -122,31 +122,17 @@ class DetectionLossTargetBuilder:
         sizes = torch.zeros(H, W, 2)
         headings = torch.zeros(H, W, 2)
 
-        for i in range(H):
-            for j in range(W):
-                if heatmap[i, j] > self._heatmap_threshold:
-                    offsets[i, j, 0] = cx - j
-                    offsets[i, j, 1] = cy - i
-                    sizes[i, j, 0] = x_size
-                    sizes[i, j, 1] = y_size
-                    headings[i, j, 0] = math.sin(yaw)
-                    headings[i, j, 1] = math.cos(yaw)
+        mask = heatmap.gt(self._heatmap_threshold)
 
-        # sizes = torch.zeros(H, W, 2)
-        # headings = torch.zeros(H, W, 2)
+        offsets[:, :, 0] = cx - grid_coords[:, :, 0]
+        offsets[:, :, 1] = cy - grid_coords[:, :, 1]
+        sizes[:, :] = torch.tensor((x_size, y_size))
+        headings[:, :] = torch.tensor((math.sin(yaw), math.cos(yaw)))
 
-        # for i in range(H):
-        #     for j in range(W):
-        #         if heatmap[i, j] > self._heatmap_threshold:
-        #             offsets[i, j, :] = torch.tensor([cx - i, cy - j])
-        #             sizes[i, j, :] = torch.tensor([x_size, y_size])
-        #             headings[i, j, :] = torch.tensor([math.sin(yaw), math.cos(yaw)])
-        #         else:
-        #             offsets[i, j, :] = torch.tensor([0, 0])
-        #             sizes[i, j, :] = torch.tensor([0, 0])
-        #             headings[i, j, :] = torch.tensor([0, 0])
-
-        # offsets = torch.zeros(H, W, 2)
+        for _ in range(2):
+            offsets[:, :, 0] *= mask
+            sizes[:, :, 0] *= mask
+            headings[:, :, 0] *= mask
 
         # 4. Create box size training target.
         # Given the label's bounding box size (x_size, y_size), the target size at pixel (i, j)

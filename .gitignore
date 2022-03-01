@@ -131,3 +131,4 @@ dmypy.json
 #added ignores
 dataset/
 plots/
+saved_models/
