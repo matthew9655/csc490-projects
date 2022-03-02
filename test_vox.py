@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from detection.dataset import PandasetDataset
+from detection.metrics.evaluator import Evaluator
 from detection.model import DetectionModelConfig
 from detection.modules.loss_function import heatmap_weighted_mse_loss
 from detection.modules.loss_target import create_heatmap
@@ -66,21 +67,35 @@ if __name__ == "__main__":
     # mask_x = torch.all(torch.stack((cx1, cx2), dim=-1), dim=1)
     # print(mask_x)
 
-    A = torch.rand(1, 10, 10)
-    print(A)
-    test = torch.nn.MaxPool2d(5, stride=1, padding=2)
-    B = test(A)
+    # A = torch.rand(1, 10, 10)
+    # print(A)
+    # test = torch.nn.MaxPool2d(5, stride=1, padding=2)
+    # B = test(A)
 
-    print(B)
+    # print(B)
 
-    C = torch.where(A == B, A, torch.tensor(0.0)).reshape(10, 10)
-    print(C)
+    # C = torch.where(A == B, A, torch.tensor(0.0)).reshape(10, 10)
+    # print(C)
 
-    B = B.reshape(10, 10)
-    max_idxs = C.nonzero()
-    first_max_dim = max_idxs[:, 0]
-    sec_max_dim = max_idxs[:, 1]
-    heatmapvals = torch.cat(
-        [B[x, y].unsqueeze(0) for x, y in zip(first_max_dim, sec_max_dim)]
-    )
-    print(heatmapvals)
+    # B = B.reshape(10, 10)
+    # max_idxs = C.nonzero()
+    # first_max_dim = max_idxs[:, 0]
+    # sec_max_dim = max_idxs[:, 1]
+    # heatmapvals = torch.cat(
+    #     [B[x, y].unsqueeze(0) for x, y in zip(first_max_dim, sec_max_dim)]
+    # )
+    # print(heatmapvals)
+
+    evaluator = torch.load("saved_models/evaluator.pth")
+    output_root = "plots"
+
+    result = evaluator.evaluate()
+    result_df = result.as_dataframe()
+    with open(f"{output_root}/result.csv", "w") as f:
+        f.write(result_df.to_csv())
+
+    result.visualize()
+    plt.savefig(f"{output_root}/results.png")
+    plt.close("all")
+
+    print(result_df)

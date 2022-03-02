@@ -69,12 +69,14 @@ def compute_precision_recall_curve(
     # TODO: Replace this stub code.
     # return PRCurve(torch.zeros(0), torch.zeros(0))
     n = len(frames)
-    detections = torch.empty(1, 2)
+    detections = torch.empty(2, 1)
     FN = 0
+    total_TL = 0
 
     for i in range(n):
         temp_detect = frames[i].detections
         label_cents = frames[i].labels.centroids
+        total_TL += len(frames[i].labels)
 
         TP_arr = torch.zeros(len(temp_detect))
 
@@ -83,29 +85,31 @@ def compute_precision_recall_curve(
                 cent[0], cent[1], temp_detect.centroids_x, temp_detect.centroids_y
             )
 
-            ed = torch.where(ed < threshold, ed, torch.tensor(0.0))
+            ed_mask = ed.lt(threshold)
 
-            if not ed.count_nonzero():
+            if not ed_mask.count_nonzero():
                 FN += 1
                 continue
 
-            max_idx = torch.argmax(ed)
-            TP_arr[max_idx] = 1
+            scores_mask = temp_detect.scores * ed_mask
+            max_score_idx = torch.argmax(scores_mask)
+            TP_arr[max_score_idx] = 1
 
-        scores_concat = torch.stack((TP_arr, temp_detect.scores), dim=-1)
-        detections = torch.cat(detections, scores_concat)
+        scores_concat = torch.stack((TP_arr, temp_detect.scores), dim=-1).permute(1, 0)
+        detections = torch.cat((detections, scores_concat), dim=-1)
 
-    detections = torch.sort(detections[1, :], dim=1, descending=True)
+    detections, _ = torch.sort(detections[:, 1:], dim=1, descending=True)
+    detections = detections.permute(1, 0)
 
     m = detections.size()[0]
 
     precision = torch.zeros(m)
     recall = torch.zeros(m)
 
-    for i in range(m):
-        TP = torch.count_nonzero(detections[:, 0])
-        precision[i] = TP / m
-        recall[i] = TP / TP + FN
+    for i in range(1, m + 1):
+        TP = torch.count_nonzero(detections[:i, 0])
+        precision[i - 1] = TP / i
+        recall[i - 1] = TP / total_TL
 
     return PRCurve(precision, recall)
 
@@ -126,8 +130,8 @@ def compute_area_under_curve(curve: PRCurve) -> float:
         The area under the curve, as defined above.
     """
     # TODO: Replace this stub code.
-    p = PRCurve.precision
-    r = PRCurve.recall
+    p = curve.precision
+    r = curve.recall
     r[0] = 0
     sums = 0
 

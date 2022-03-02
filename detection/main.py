@@ -286,6 +286,8 @@ def evaluate(
         detections = model.inference(bev_lidar[0].to(device))
         evaluator.append(detections.to(torch.device("cpu")), labels[0])
 
+    torch.save(evaluator, "saved_models/evaluator.pth")
+
     result = evaluator.evaluate()
     result_df = result.as_dataframe()
     with open(f"{output_root}/result.csv", "w") as f:
