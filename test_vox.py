@@ -1,5 +1,8 @@
 import os
 
+# voxelizer
+from dataclasses import field
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -9,22 +12,55 @@ from detection.metrics.evaluator import Evaluator
 from detection.model import DetectionModelConfig
 from detection.modules.loss_function import heatmap_weighted_mse_loss
 from detection.modules.loss_target import create_heatmap
+from detection.modules.voxelizer import VoxelizerConfig
 
 if __name__ == "__main__":
     # data_root = os.path.dirname("/u/csc490h/dataset/")
-    # data_root2 = os.path.dirname("dataset/")
-    # model_config = DetectionModelConfig()
-    # dataset = PandasetDataset(data_root2, model_config)
-    # test_vox = dataset[0][0][0].numpy()
-    # m, n = test_vox.shape
+    data_root2 = os.path.dirname("dataset/")
 
-    # af = np.flipud(test_vox)
-    # args = np.argwhere(af)
-    # # plt.figure(figsize=(m / 2, n / 2))
-    # plt.figure()
-    # plt.scatter(args.T[1, :], args.T[0, :], s=2)
+    # class DetectionModelConfig:
+    # """Detection model configuration."""
 
-    # plt.show()
+    # voxelizer: VoxelizerConfig = field(
+    #     default_factory=lambda: VoxelizerConfig(
+    #         x_range=(-76.0, 76.0),
+    #         y_range=(-50.0, 50.0),
+    #         z_range=(0.0, 10.0),
+    #         step=0.25,
+    #     )
+    # )
+    # loss: DetectionLossConfig = field(
+    #     default_factory=lambda: DetectionLossConfig(
+    #         heatmap_loss_weight=100.0,
+    #         offset_loss_weight=10.0,
+    #         size_loss_weight=1.0,
+    #         heading_loss_weight=100.0,
+    #         heatmap_threshold=0.01,
+    #         heatmap_norm_scale=20.0,
+    #     )
+    # )
+
+    # 2.1.2
+    # steps = [0.25, 0.5, 1.0, 2.0]
+    # for step in steps:
+    #     v_config = VoxelizerConfig(
+    #         x_range=(-76.0, 76.0),
+    #         y_range=(-50.0, 50.0),
+    #         z_range=(0.0, 10.0),
+    #         step=step,
+    #     )
+
+    #     model_config = DetectionModelConfig(voxelizer=v_config)
+
+    #     dataset = PandasetDataset(data_root2, model_config)
+    #     test_vox = dataset[0][0][0].numpy()
+    #     m, n = test_vox.shape
+
+    #     af = np.flipud(test_vox)
+    #     args = np.argwhere(af)
+    #     plt.figure()
+    #     plt.scatter(args.T[1, :], args.T[0, :], s=2)
+    #     plt.show()
 
     # A = torch.tensor([1, 2, 3])
     # B = torch.tensor([4, 5, 6])

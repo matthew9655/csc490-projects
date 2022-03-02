@@ -69,7 +69,7 @@ def compute_precision_recall_curve(
     # TODO: Replace this stub code.
     # return PRCurve(torch.zeros(0), torch.zeros(0))
     n = len(frames)
-    detections = torch.empty(2, 1)
+    detections = torch.empty(2, 0)
     FN = 0
     total_TL = 0
 
@@ -98,11 +98,11 @@ def compute_precision_recall_curve(
         scores_concat = torch.stack((TP_arr, temp_detect.scores), dim=-1).permute(1, 0)
         detections = torch.cat((detections, scores_concat), dim=-1)
 
-    detections, _ = torch.sort(detections[:, 1:], dim=1, descending=True)
     detections = detections.permute(1, 0)
+    _, sort_idxs = torch.sort(detections[:, 1], descending=True)
+    detections = torch.index_select(detections, 0, sort_idxs)
 
     m = detections.size()[0]
-
     precision = torch.zeros(m)
     recall = torch.zeros(m)
 
