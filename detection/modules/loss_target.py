@@ -52,7 +52,7 @@ def create_heatmap2(
 ) -> Tensor:
     """Return a heatmap based on a multivariate Gaussian kernel.
     """
-    if h==0 or w==0:
+    if h==0. or w==0.:
         return create_heatmap(grid_coords, center, scale)
 
     H, W, _ = grid_coords.size()
