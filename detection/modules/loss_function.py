@@ -31,25 +31,41 @@ def heatmap_weighted_mse_loss(
             weighted average using the provided `heatmap`.
     """
     # TODO: Replace this stub code.
-    # return torch.sum(predictions) * 0.0
-    # heatmap = heatmap.float()
-    # A, B, C, D = heatmap.size()
-    # heatmap_ = heatmap.reshape(A, C, D)
-    # M = len(heatmap[heatmap > heatmap_threshold])
-    # diff = torch.sub(predictions, targets)
-    # squared = torch.pow(diff, 2)
-    # mse_loss = torch.sum(squared, dim=1)
-    # mask = torch.where(
-    #     heatmap_ > heatmap_threshold, heatmap_, torch.tensor(0.0).to(device)
-    # )
-    # scalar_loss = torch.sum(mask * mse_loss) / M
-    # return scalar_loss
+
 
     mse_loss = torch.sum((predictions - targets) ** 2, dim=1)
     heatmap = torch.flatten(heatmap, start_dim=1, end_dim=2)
     mask = heatmap.gt(heatmap_threshold)
     num = torch.count_nonzero(mask)
     return torch.sum(mask * heatmap * mse_loss) / num
+
+
+def heatmap_weighted_focal_loss(
+    targets: Tensor, predictions: Tensor, heatmap: Tensor, heatmap_threshold: float, gamma: float
+) -> Tensor:
+    """Compute the mean squared error (MSE) loss between `predictions` and `targets`, weighted by a heatmap.
+
+
+    Args:
+        targets: A [batch_size x C x H x W] tensor, containing the ground truth targets.
+        predictions: A [batch_size x C x H x W] tensor, containing the predictions.
+        heatmap: A [batch_size x 1 x H x W] tensor, representing the ground truth heatmap.
+        heatmap_threshold: We compute MSE loss for only elements where `heatmap > heatmap_threshold`.
+
+    Returns:
+        A scalar MSE loss between `predictions` and `targets`, aggregated as a
+            weighted average using the provided `heatmap`.
+    """
+    mask = heatmap.gt(heatmap_threshold)
+    y = mask*heatmap
+    num = torch.count_nonzero(mask)
+    C,H,W = targets.size()[1:]
+    sigmoid = (1+torch.exp((-1)*predictions)).reciprocal()
+    bce_loss = y*(sigmoid.log()) + (1-y)*torch.log(1-sigmoid)
+    f_loss = (-1)*((1 - torch.exp(bce_loss)) ** gamma)*bce_loss
+    scalar_loss = f_loss.sum()/num
+    return scalar_loss
+
 
 
 @dataclass
@@ -126,15 +142,16 @@ class DetectionLossFunction(torch.nn.Module):
         predicted_headings = predictions[:, 5:7]  # [B x 2 x H x W]
 
         # 3. Compute individual loss terms for heatmap, offset, size, and heading.
+        gamma = 0.
         heatmap_loss = ((target_heatmap - predicted_heatmap) ** 2).mean()
-        offset_loss = heatmap_weighted_mse_loss(
-            target_offsets, predicted_offsets, target_heatmap, self._heatmap_threshold
+        offset_loss = heatmap_weighted_focal_loss(
+            target_offsets, predicted_offsets, target_heatmap, self._heatmap_threshold, gamma
         )
-        size_loss = heatmap_weighted_mse_loss(
-            target_sizes, predicted_sizes, target_heatmap, self._heatmap_threshold
+        size_loss = heatmap_weighted_focal_loss(
+            target_sizes, predicted_sizes, target_heatmap, self._heatmap_threshold, gamma
         )
-        heading_loss = heatmap_weighted_mse_loss(
-            target_headings, predicted_headings, target_heatmap, self._heatmap_threshold
+        heading_loss = heatmap_weighted_focal_loss(
+            target_headings, predicted_headings, target_heatmap, self._heatmap_threshold, gamma
         )
 
         # 4. Aggregate losses using the configured weights.
