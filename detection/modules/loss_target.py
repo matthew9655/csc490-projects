@@ -75,23 +75,22 @@ def create_heatmap2(
     )
     scale = torch.tensor([[w, 0], [0, h]])
     cov = torch.matmul(scale, rotation)  # "Covariance matrix"
-    #inv = torch.inverse(cov)
-    inv = torch.tensor([[1,0],[0,1]])
+    # inv = torch.inverse(cov)
+    inv = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
     for i in range(H):
         for j in range(W):
             v = grid_coords[i, j, :]
             diff = (v - c).float()
-           # diff_t = torch.transpose(diff,1, 0)
-            power[i, j] = (-1) * (torch.dot(diff, torch.matmul(inv, diff).float()))
-    #v = grid_coords.reshape((H*W,2))
-    #diff = (v-c).float()
-    #diff_T= torch.transpose(diff,0,1) # (2 X H*W)
-    #A = torch.matmul(inv, diff_T) # 2X2 multiplied by 2 X H*W 
-    #power = (-1)*torch.sum(diff*A, dim=0) #1XH*W 
-    #power = torch.reshape((H,W))
+            # diff_t = torch.transpose(diff,1, 0)
+            power[i, j] = -torch.dot(diff, torch.matmul(inv, diff).float())
+    # v = grid_coords.reshape((H*W,2))
+    # diff = (v-c).float()
+    # diff_T= torch.transpose(diff,0,1) # (2 X H*W)
+    # A = torch.matmul(inv, diff_T) # 2X2 multiplied by 2 X H*W
+    # power = (-1)*torch.sum(diff*A, dim=0) #1XH*W
+    # power = torch.reshape((H,W))
     heatmap = torch.exp(power)
     vals = torch.flatten(heatmap)
-
 
     return heatmap / torch.max(vals)
 
@@ -158,10 +157,10 @@ class DetectionLossTargetBuilder:
         # 2. Create heatmap training targets by invoking the `create_heatmap` function.
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
-        # heatmap = create_heatmap2(
-        #     grid_coords, center=center, h=y_size, w=x_size, yaw=yaw
-        # )  # [H x W]
-        heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
+        heatmap = create_heatmap2(
+            grid_coords, center=center, h=y_size, w=x_size, yaw=yaw
+        )  # [H x W]
+        # heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals
         # (cx - i, cy - j) if the heatmap value at (i, j) exceeds self._heatmap_threshold.

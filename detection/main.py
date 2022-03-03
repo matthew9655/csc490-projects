@@ -105,6 +105,8 @@ def overfit(
             plt.savefig(f"{output_root}/detections_{gamma:.3f}.png")
             plt.close("all")
 
+    # return loss_metadata
+
 
 def train(
     data_root: str,
