@@ -75,9 +75,9 @@ def create_heatmap2(grid_coords: Tensor, center: Tensor, h: float, w:float, yaw:
     for i in range(H):
        for j in range(W):
            v = grid_coords[i,j,:]
-           diff = v-c
-           diff_t = torch.transpose(diff)
-           power[i,j]= (-1)*(torch.matmul(diff_t,torch.matmul(inv, diff) ))
+           diff = (v-c).float()
+           #diff_t = torch.transpose(diff,1, 0)
+           power[i,j]= (-1)*(torch.dot(diff,torch.matmul(inv, diff).float()))
     
     heatmap = torch.exp(power)
     vals = torch.flatten(heatmap)
@@ -146,7 +146,7 @@ class DetectionLossTargetBuilder:
         # 2. Create heatmap training targets by invoking the `create_heatmap` function.
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
-        heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
+        heatmap = create_heatmap2(grid_coords, center=center,h=y_size,w=x_size,yaw=yaw)  # [H x W]
 
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals

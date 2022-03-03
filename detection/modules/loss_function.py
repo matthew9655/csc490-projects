@@ -59,8 +59,8 @@ def heatmap_weighted_focal_loss(
     mask = heatmap.gt(heatmap_threshold)
     y = mask*heatmap
     num = torch.count_nonzero(mask)
-    C,H,W = targets.size()[1:]
     sigmoid = (1+torch.exp((-1)*predictions)).reciprocal()
+    z = torch.sigmoid(targets)
     bce_loss = y*(sigmoid.log()) + (1-y)*torch.log(1-sigmoid)
     f_loss = (-1)*((1 - torch.exp(bce_loss)) ** gamma)*bce_loss
     scalar_loss = f_loss.sum()/num
