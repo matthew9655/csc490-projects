@@ -48,22 +48,9 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
 
 
 def create_heatmap2(
-    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float, sscale: float
+    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float
 ) -> Tensor:
     """Return a heatmap based on a multivariate Gaussian kernel.
-    The "covariance" matrix is the scale matrix multiplied by rotation matrix.
-
-    Args:
-        grid_coords: An [H x W x 2] tensor containing the (x, y) coordinates of every
-            pixel in an [H x W] image. For example, for a [2 x 3] image, `grid_coords`
-            contains the elements (0, 0), (0, 1), (0, 2), ..., (1, 2).
-        center: A [2] tensor containing the (x, y) coordinate of the center.
-            This argument controls the kernel's center.
-        h: height of bounding box.
-        w: width of bounding box
-
-    Returns:
-        An [H x W] heatmap tensor, normalized such that its peak is 1.
     """
     H, W, _ = grid_coords.size()
     power = torch.zeros((H, W))
@@ -74,9 +61,8 @@ def create_heatmap2(
         [[math.cos(yaw), (-1) * math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]]
     )
     scale = torch.tensor([[w, 0], [0, h]])
-    cov = torch.matmul(scale, rotation)  # "Covariance matrix"
+    cov = torch.mm(scale, rotation)  # "Covariance matrix"
     inv = torch.inverse(cov)
-    inv = torch.tensor([[1.0, 0.0], [0.0, 1.0]]) / sscale
     for i in range(H):
         for j in range(W):
             v = grid_coords[i, j, :]
