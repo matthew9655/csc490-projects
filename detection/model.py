@@ -28,8 +28,9 @@ class DetectionModelConfig:
             offset_loss_weight=10.0,
             size_loss_weight=1.0,
             heading_loss_weight=100.0,
-            heatmap_threshold=0.01,
+            heatmap_threshold=0.05,
             heatmap_norm_scale=20.0,
+            gamma=0.2,
         )
     )
 
@@ -128,7 +129,7 @@ class DetectionModel(nn.Module):
         pred = self.forward(input_lidar)
 
         heatmap = pred[:, 0, :, :]
-        max_pool = torch.nn.MaxPool2d(5, stride=1, padding=2)
+        max_pool = torch.nn.MaxPool2d(3, stride=1, padding=1)
         pooled_heatmap = max_pool(heatmap)
         heatmap = heatmap.reshape(H, W)
         pooled_heatmap = pooled_heatmap.reshape(H, W)

@@ -46,7 +46,10 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
 
     return heatmap / torch.max(vals)
 
-def create_heatmap2(grid_coords: Tensor, center: Tensor, h: float, w:float, yaw: float) -> Tensor:
+
+def create_heatmap2(
+    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float
+) -> Tensor:
     """Return a heatmap based on a multivariate Gaussian kernel.
     The "covariance" matrix is the scale matrix multiplied by rotation matrix.
 
@@ -65,24 +68,22 @@ def create_heatmap2(grid_coords: Tensor, center: Tensor, h: float, w:float, yaw:
     H, W, _ = grid_coords.size()
     power = torch.zeros((H, W))
     grid_coords = grid_coords.int()
-    
+
     c = center.int()
-    rotation = torch.tensor([[math.cos(yaw),(-1)*math.sin(yaw)],[math.sin(yaw),math.cos(yaw)]])
-    scale = torch.tensor([[w,0],[0,h]])
-    cov = torch.matmul(scale,rotation) #"Covariance matrix"
-    inv  = torch.inverse(cov)
-    
-    #for i in range(H):
-    #  for j in range(W):
-    #       v = grid_coords[i,j,:]
-    #      diff = (v-c).float()
-    #      power[i,j]= (-1)*(torch.dot(diff,torch.matmul(inv, diff).float()))
-    v = grid_coords.reshape((H*W,2))
-    diff = (v-c).float()
-    diff_T= torch.transpose(diff,0,1) # (2 X H*W)
-    A = torch.matmul(inv, diff) # 2X2 multiplied by 2 X H*W 
-    power = (-1)*torch.sum(diff_T*A, dim=0) #1XH*W 
-    power = torch.reshape((H,W))
+    rotation = torch.tensor(
+        [[math.cos(yaw), (-1) * math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]]
+    )
+    scale = torch.tensor([[w, 0], [0, h]])
+    cov = torch.matmul(scale, rotation)  # "Covariance matrix"
+    inv = torch.inverse(cov)
+
+    for i in range(H):
+        for j in range(W):
+            v = grid_coords[i, j, :]
+            diff = (v - c).float()
+            # diff_t = torch.transpose(diff,1, 0)
+            power[i, j] = (-1) * (torch.dot(diff, torch.matmul(inv, diff).float()))
+
     heatmap = torch.exp(power)
     vals = torch.flatten(heatmap)
     return heatmap / torch.max(vals)
@@ -150,8 +151,10 @@ class DetectionLossTargetBuilder:
         # 2. Create heatmap training targets by invoking the `create_heatmap` function.
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
-        heatmap = create_heatmap2(grid_coords, center=center,h=y_size,w=x_size,yaw=yaw)  # [H x W]
-
+        # heatmap = create_heatmap2(
+        #     grid_coords, center=center, h=y_size, w=x_size, yaw=yaw
+        # )  # [H x W]
+        heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals
         # (cx - i, cy - j) if the heatmap value at (i, j) exceeds self._heatmap_threshold.

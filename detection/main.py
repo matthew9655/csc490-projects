@@ -10,7 +10,7 @@ from tqdm import tqdm
 from detection.dataset import PandasetDataset, custom_collate
 from detection.metrics.evaluator import Evaluator
 from detection.model import DetectionModel, DetectionModelConfig
-from detection.modules.loss_function import DetectionLossFunction
+from detection.modules.loss_function import DetectionLossConfig, DetectionLossFunction
 from detection.utils.visualization import visualize_detections
 
 
@@ -21,6 +21,7 @@ def overfit(
     num_iterations: int = 500,
     log_frequency: int = 100,
     learning_rate: float = 1e-4,
+    gamma: float = 0.2,
 ) -> None:
     """Overfit detector to one frame of the Pandaset dataset.
 
@@ -42,7 +43,16 @@ def overfit(
     os.makedirs(output_root, exist_ok=True)
 
     # setup model
-    model_config = DetectionModelConfig()
+    loss_config = DetectionLossConfig(
+        heatmap_loss_weight=100.0,
+        offset_loss_weight=10.0,
+        size_loss_weight=1.0,
+        heading_loss_weight=100.0,
+        heatmap_threshold=0.05,
+        heatmap_norm_scale=20.0,
+        gamma=gamma,
+    )
+    model_config = DetectionModelConfig(loss=loss_config)
     model = DetectionModel(model_config).to(device)
 
     # setup data
@@ -92,7 +102,7 @@ def overfit(
                 detections = model.inference(bev_lidar[0].to(device))
             lidar = bev_lidar[0].sum(0).nonzero().detach().cpu()[:, [1, 0]]
             visualize_detections(lidar, detections, labels[0])
-            plt.savefig(f"{output_root}/detections.png")
+            plt.savefig(f"{output_root}/detections_{gamma:.3f}.png")
             plt.close("all")
 
 
