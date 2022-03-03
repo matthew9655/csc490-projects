@@ -48,10 +48,13 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
 
 
 def create_heatmap2(
-    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float
+    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float, scale: float
 ) -> Tensor:
     """Return a heatmap based on a multivariate Gaussian kernel.
     """
+    if h==0 or w==0:
+        return create_heatmap(grid_coords, center, scale)
+
     H, W, _ = grid_coords.size()
     power = torch.zeros((H, W))
     grid_coords = grid_coords.int()
