@@ -75,17 +75,24 @@ def create_heatmap2(
     )
     scale = torch.tensor([[w, 0], [0, h]])
     cov = torch.matmul(scale, rotation)  # "Covariance matrix"
-    inv = torch.inverse(cov)
-
-    for i in range(H):
-        for j in range(W):
-            v = grid_coords[i, j, :]
-            diff = (v - c).float()
+    #inv = torch.inverse(cov)
+    inv = torch.tensor([[1,0],[0,1]])
+    #for i in range(H):
+    #    for j in range(W):
+    #        v = grid_coords[i, j, :]
+    #        diff = (v - c).float()
             # diff_t = torch.transpose(diff,1, 0)
-            power[i, j] = (-1) * (torch.dot(diff, torch.matmul(inv, diff).float()))
-
+    #        power[i, j] = (-1) * (torch.dot(diff, torch.matmul(inv, diff).float()))
+    v = grid_coords.reshape((H*W,2))
+    diff = (v-c).float()
+    diff_T= torch.transpose(diff,0,1) # (2 X H*W)
+    A = torch.matmul(inv, diff) # 2X2 multiplied by 2 X H*W 
+    power = (-1)*torch.sum(diff_T*A, dim=0) #1XH*W 
+    power = torch.reshape((H,W))
     heatmap = torch.exp(power)
     vals = torch.flatten(heatmap)
+
+
     return heatmap / torch.max(vals)
 
 
