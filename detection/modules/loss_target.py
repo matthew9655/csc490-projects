@@ -48,7 +48,7 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
 
 
 def create_heatmap2(
-    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float
+    grid_coords: Tensor, center: Tensor, h: float, w: float, yaw: float, sscale: float
 ) -> Tensor:
     """Return a heatmap based on a multivariate Gaussian kernel.
     The "covariance" matrix is the scale matrix multiplied by rotation matrix.
@@ -75,8 +75,8 @@ def create_heatmap2(
     )
     scale = torch.tensor([[w, 0], [0, h]])
     cov = torch.matmul(scale, rotation)  # "Covariance matrix"
-    # inv = torch.inverse(cov)
-    inv = torch.tensor([[1.0, 0.0], [0.0, 1.0]])
+    inv = torch.inverse(cov)
+    inv = torch.tensor([[1.0, 0.0], [0.0, 1.0]]) / sscale
     for i in range(H):
         for j in range(W):
             v = grid_coords[i, j, :]
@@ -158,7 +158,7 @@ class DetectionLossTargetBuilder:
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
         heatmap = create_heatmap2(
-            grid_coords, center=center, h=y_size, w=x_size, yaw=yaw
+            grid_coords, center, y_size, x_size, yaw, scale
         )  # [H x W]
         # heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
         # 3. Create offset training targets.
