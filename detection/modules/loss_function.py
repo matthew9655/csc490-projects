@@ -40,13 +40,36 @@ def heatmap_weighted_mse_loss(
     return torch.sum(mask * heatmap * mse_loss) / num
 
 
-def focal_loss2(pred, target, gamma, alpha):
+def focal_loss(pred, target, gamma, alpha):
     alpha = torch.full_like(pred, alpha)
     ce_loss = F.binary_cross_entropy(pred, target, reduction="mean", weight=alpha)
     pt = torch.exp(-ce_loss)
     focal_loss = ((1 - pt) ** gamma * ce_loss).mean()
     return focal_loss
 
+def heatmap_weighted_focal_loss(
+     predicted_heatmap: Tensor,target_heatmap: Tensor,  heatmap_threshold: float, gamma: float
+) -> Tensor:
+    """Compute the mean squared error (MSE) loss between `predictions` and `targets`, weighted by a heatmap.
+
+
+    Args:
+        targets: A [batch_size x C x H x W] tensor, containing the ground truth targets.
+        predictions: A [batch_size x C x H x W] tensor, containing the predictions.
+        heatmap: A [batch_size x 1 x H x W] tensor, representing the ground truth heatmap.
+        heatmap_threshold: We compute MSE loss for only elements where `heatmap > heatmap_threshold`.
+
+    Returns:
+        A scalar MSE loss between `predictions` and `targets`, aggregated as a
+            weighted average using the provided `heatmap`.
+    """
+    mask = target_heatmap.gt(heatmap_threshold)
+    y = mask*target_heatmap
+    num = torch.count_nonzero(mask)
+    bce_loss = y*(predicted_heatmap.log()) + (1-y)*torch.log(1-predicted_heatmap)
+    f_loss = (-1)*((1 - torch.exp(bce_loss)) ** gamma)*bce_loss
+    scalar_loss = f_loss.sum()/num
+    return scalar_loss
 
 @dataclass
 class DetectionLossConfig:
@@ -124,9 +147,13 @@ class DetectionLossFunction(torch.nn.Module):
         predicted_headings = predictions[:, 5:7]  # [B x 2 x H x W]
 
         # 3. Compute individual loss terms for heatmap, offset, size, and heading.
-        heatmap_loss = focal_loss(predicted_heatmap, target_heatmap, self._gamma, 1)
+        # heatmap_loss = focal_loss(predicted_heatmap, target_heatmap, self._gamma, 1)
         # heatmap_loss = ((target_heatmap - predicted_heatmap) ** 2).mean()
 
+        gamma = 0.2
+        heatmap_loss = heatmap_weighted_focal_loss(
+             predicted_heatmap, target_heatmap, self._heatmap_threshold, gamma
+        )
         offset_loss = heatmap_weighted_mse_loss(
             target_offsets, predicted_offsets, target_heatmap, self._heatmap_threshold
         )
