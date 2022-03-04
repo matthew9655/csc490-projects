@@ -134,4 +134,7 @@ plots/
 saved_models/
 test_plots/
 test/
+focal_loss_test/
+focal_loss_model/
+gamma_detections/
 

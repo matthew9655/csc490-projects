@@ -105,7 +105,7 @@ def overfit(
             plt.savefig(f"{output_root}/detections_{gamma:.3f}.png")
             plt.close("all")
 
-    # return loss_metadata
+    return loss_metadata
 
 
 def train(
@@ -116,8 +116,9 @@ def train(
     num_workers: int = 8,
     num_epochs: int = 5,
     log_frequency: int = 100,
-    learning_rate: float = 1e-4,
+    learning_rate: float = 5e-5,
     checkpoint_path: Optional[str] = None,
+    gamma=2.0,
 ) -> None:
     """Train detector on the Pandaset dataset.
 
@@ -142,7 +143,16 @@ def train(
     os.makedirs(output_root, exist_ok=True)
 
     # setup model
-    model_config = DetectionModelConfig()
+    loss_config = DetectionLossConfig(
+        heatmap_loss_weight=100.0,
+        offset_loss_weight=10.0,
+        size_loss_weight=1.0,
+        heading_loss_weight=100.0,
+        heatmap_threshold=0.05,
+        heatmap_norm_scale=20.0,
+        gamma=gamma,
+    )
+    model_config = DetectionModelConfig(loss=loss_config)
     model = DetectionModel(model_config)
     if checkpoint_path is not None:
         model.load_state_dict(torch.load(checkpoint_path, map_location="cpu"))
@@ -202,7 +212,8 @@ def train(
                 plt.savefig(f"{output_root}/detections.png")
                 plt.close("all")
 
-        torch.save(model.state_dict(), f"{output_root}/{epoch:03d}.pth")
+        torch.save(model.state_dict(), f"{output_root}/{epoch:03d}_{gamma}.pth")
+    return loss_metadata
 
 
 @torch.no_grad()

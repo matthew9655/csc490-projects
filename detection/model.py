@@ -30,7 +30,7 @@ class DetectionModelConfig:
             heading_loss_weight=100.0,
             heatmap_threshold=0.05,
             heatmap_norm_scale=20.0,
-            gamma=0.2,
+            gamma=2.5,
         )
     )
 
