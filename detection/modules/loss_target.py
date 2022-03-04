@@ -60,11 +60,11 @@ def create_heatmap2(
     grid_coords = grid_coords.int()
 
     c = center.int()
-    rotation = torch.tensor(
+    rot = torch.tensor(
         [[math.cos(yaw), (-1) * math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]]
     )
     scale = torch.tensor([[w, 0], [0, h]])
-    cov = torch.mm(scale, rotation)  # "Covariance matrix"
+    cov = torch.matmul(rot, scale)  # "Covariance matrix"
     inv = torch.inverse(cov)
     for i in range(H):
         for j in range(W):
