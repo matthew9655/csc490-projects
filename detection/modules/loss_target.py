@@ -62,7 +62,7 @@ def create_heatmap2(
     c = center.int()
     rot = torch.tensor(
         [[math.cos(yaw), (-1) * math.sin(yaw)], [math.sin(yaw), math.cos(yaw)]]
-    )
+    ).float()
     scale = torch.tensor([[w, 0], [0, h]]).float()
     cov = torch.matmul(rot, scale).float()  # "Covariance matrix"
     inv = torch.inverse(cov)
