@@ -1,9 +1,9 @@
 import math
 from typing import Tuple
 
-import matplotlib.pyplot as plt
 import torch
 from torch import Tensor
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 from detection.modules.loss_function import DetectionLossConfig
 from detection.types import Detections
@@ -47,38 +47,54 @@ def create_heatmap(grid_coords: Tensor, center: Tensor, scale: float) -> Tensor:
     return heatmap / torch.max(vals)
 
 
-def create_heatmap2(
-    grid_coords, center, h: float, w: float, yaw: float, scale: float
-):
-    """Return a heatmap based on a multivariate Gaussian kernel.
+def create_heatmap2(grid_coords, center, h: float, w: float, yaw: float, scale: float):
     """
-    if h==0. or w==0.:
+    Returns a anisotropic heatmap with the covariance matrix:
+    [[w, yaw],
+     [-yaw, h]]
+
+    """
+    cov = torch.tensor((h, -yaw, yaw, w)).reshape(2, 2)
+    g = MultivariateNormal(center, covariance_matrix=cov)
+
+    H, W, _ = grid_coords.size()
+    power = g.log_prob(grid_coords.float()) / scale * 15
+    heatmap = torch.exp(power)
+    heatmap = heatmap.reshape((H, W))
+    vals = torch.flatten(heatmap)
+
+    return heatmap / torch.max(vals)
+
+
+def create_heatmap3(grid_coords, center, h: float, w: float, yaw: float, scale: float):
+    """Return a heatmap based on a multivariate Gaussian kernel."""
+    if h == 0.0 or w == 0.0:
         return create_heatmap(grid_coords, center, scale)
 
     H, W, _ = grid_coords.size()
     power = torch.zeros((H, W))
     grid_coords = grid_coords.int()
 
-    c = center.int()
+    c = center
     rot = torch.tensor(
-        [[math.cos(yaw), (1) * math.sin(yaw)], [-math.sin(yaw), math.cos(yaw)]]
+        [[math.cos(yaw), math.sin(yaw)], [-math.sin(yaw), math.cos(yaw)]]
     ).float()
     scale = torch.tensor([[w, 0], [0, h]]).float()
-    cov = torch.matmul(rot, scale).float()# "Covariance matrix"
-    if cov[0,0] <0:
+    cov = torch.matmul(rot, scale).float()  # "Covariance matrix"
+    if cov[0, 0] < 0:
         cov = -cov
- 
     inv = torch.inverse(cov)
     for i in range(H):
         for j in range(W):
             v = grid_coords[i, j, :]
             diff = (v - c).float()
-            power[i, j] = (-1/2)*torch.dot(diff, torch.matmul(inv, diff).float())/100
+            power[i, j] = (
+                (-1 / 2) * torch.dot(diff, torch.matmul(inv, diff).float()) / 100
+            )
     heatmap = torch.exp(power)
     vals = torch.flatten(heatmap)
 
     return heatmap / torch.max(vals)
-
 
 
 class DetectionLossTargetBuilder:
@@ -143,9 +159,10 @@ class DetectionLossTargetBuilder:
         # 2. Create heatmap training targets by invoking the `create_heatmap` function.
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
-        heatmap = create_heatmap2(
+        heatmap = create_heatmap3(
             grid_coords, center, y_size, x_size, yaw, scale
         )  # [H x W]
+
         # heatmap = create_heatmap(grid_coords, center=center, scale=scale)  # [H x W]
         # 3. Create offset training targets.
         # Given the label's center (cx, cy), the target offset at pixel (i, j) equals

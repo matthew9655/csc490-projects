@@ -102,7 +102,7 @@ def overfit(
                 detections = model.inference(bev_lidar[0].to(device))
             lidar = bev_lidar[0].sum(0).nonzero().detach().cpu()[:, [1, 0]]
             visualize_detections(lidar, detections, labels[0])
-            plt.savefig(f"{output_root}/detections_{gamma:.3f}.png")
+            plt.savefig(f"{output_root}/detections.png")
             plt.close("all")
 
     return loss_metadata
@@ -212,8 +212,7 @@ def train(
                 plt.savefig(f"{output_root}/detections.png")
                 plt.close("all")
 
-        torch.save(model.state_dict(), f"{output_root}/{epoch:03d}_{gamma}.pth")
-    return loss_metadata
+        torch.save(model.state_dict(), f"{output_root}/{epoch:03d}.pth")
 
 
 @torch.no_grad()

@@ -1,4 +1,3 @@
-import math
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -109,18 +108,6 @@ class Voxelizer(torch.nn.Module):
 
             for j in range(BEV_idx.size()[0]):
                 BEVs[i, BEV_idx[j, 0], BEV_idx[j, 1], BEV_idx[j, 2]] = 1
-
-        # for i in range(n):
-        #     pc = pointclouds[i]
-        #     for j in range(pc.size()[0]):
-        #         x, y, z = pc[j]
-        #         if self._x_min <= x <= self._x_max and self._y_min <= y <= self._y_max:
-        #             vi = math.floor((z - self._z_min) / self._step)
-        #             vi = torch.clip(torch.tensor(vi), 0, self._depth - 1).item()
-        #             vj = math.floor((self._y_max - y) / self._step)
-        #             vk = math.floor((x - self._x_min) / self._step)
-
-        #             BEVs[i, vi, vj, vk] = 1
 
         return BEVs
 

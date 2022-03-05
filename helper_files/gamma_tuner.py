@@ -1,8 +1,10 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from detection.main import overfit, train
+from detection.main import overfit
 
 if __name__ == "__main__":
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -10,9 +12,11 @@ if __name__ == "__main__":
 
     losses = np.zeros((gammas.size()[0], 4))
 
+    os.makedirs("focal_loss_test", exist_ok=True)
+
     for i, gamma in enumerate(gammas):
-        loss_metadata = train(
-            data_root="dataset", output_root="focal_loss_model", gamma=gamma
+        loss_metadata = overfit(
+            data_root="dataset", output_root="focal_loss_test", gamma=gamma
         )
         losses[i] = torch.tensor(
             [
@@ -26,6 +30,7 @@ if __name__ == "__main__":
     plt.figure()
     fig, axs = plt.subplots(4, 1)
     plt.subplots_adjust(hspace=0.8)
+
     gammas = gammas.detach().cpu().numpy()
 
     titles = ["heatmap loss", "offset loss", "size loss", "heading loss"]
