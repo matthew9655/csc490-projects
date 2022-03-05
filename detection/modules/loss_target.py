@@ -75,23 +75,19 @@ def create_heatmap3(grid_coords, center, h: float, w: float, yaw: float, scale: 
     power = torch.zeros((H, W))
     grid_coords = grid_coords.int()
 
-    c = center
     rot = torch.tensor(
-        [[math.cos(yaw), math.sin(yaw)], [-math.sin(yaw), math.cos(yaw)]]
+        [[math.cos(yaw), math.sin(yaw)], [(-1) * math.sin(yaw), math.cos(yaw)]]
     ).float()
-    scale = torch.tensor([[w, 0], [0, h]]).float()
+    scale = torch.tensor([[1, 0], [0, 2]]).float()
     cov = torch.matmul(rot, scale).float()  # "Covariance matrix"
-    if cov[0, 0] < 0:
-        cov = -cov
-    inv = torch.inverse(cov)
-    for i in range(H):
-        for j in range(W):
-            v = grid_coords[i, j, :]
-            diff = (v - c).float()
-            power[i, j] = (
-                (-1 / 2) * torch.dot(diff, torch.matmul(inv, diff).float()) / 100
-            )
+    if rot[0, 0] <= 0:
+        cov = torch.eye(2)
+    g = MultivariateNormal(center, covariance_matrix=cov)
+
+    H, W, _ = grid_coords.size()
+    power = g.log_prob(grid_coords.float()) / 10
     heatmap = torch.exp(power)
+    heatmap = heatmap.reshape((H, W))
     vals = torch.flatten(heatmap)
 
     return heatmap / torch.max(vals)
@@ -159,7 +155,7 @@ class DetectionLossTargetBuilder:
         # 2. Create heatmap training targets by invoking the `create_heatmap` function.
         center = torch.tensor([cx, cy])
         scale = (x_size ** 2 + y_size ** 2) / self._heatmap_norm_scale
-        heatmap = create_heatmap3(
+        heatmap = create_heatmap2(
             grid_coords, center, y_size, x_size, yaw, scale
         )  # [H x W]
 

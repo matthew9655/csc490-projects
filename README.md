@@ -38,3 +38,7 @@ Making Your Self-driving Car Perceive the World.
    ```bash
    unzip pandaset_0.zip -d <your_path_to_dataset>
    ```
+
+## To run the gamma tuner, do:
+
+`python3 gamma_tuner.py`
