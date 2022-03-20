@@ -1,5 +1,7 @@
+import matplotlib.pyplot as plt
 import numpy as np
-from shapely.geometry import Polygon
+from shapely import affinity
+from shapely.geometry import Point, box
 
 
 def iou_2d(bboxes1: np.ndarray, bboxes2: np.ndarray) -> np.ndarray:
@@ -13,6 +15,56 @@ def iou_2d(bboxes1: np.ndarray, bboxes2: np.ndarray) -> np.ndarray:
         You should use the Polygon class from the shapely package to compute the area of intersection/union.
     """
     M, N = bboxes1.shape[0], bboxes2.shape[0]
+
     # TODO: Replace this stub code.
-    iou_mat = np.zeros((M, N))
-    return iou_mat
+    intersection = np.zeros((M, N))
+    union = np.zeros((M, N))
+
+    poly1 = []
+    poly2 = []
+
+    # get polygons for bboxes1
+    for i in range(M):
+        x, y, l, w, yaw = bboxes1[i, :]
+        dx = np.cos(yaw) * l - np.sin(yaw) * w
+        dy = np.sin(yaw) * l + np.cos(yaw) * w
+
+        min_x = x - dx / 2
+        min_y = y - dy / 2
+
+        polygon = box(min_x, min_y, min_x + l, min_y + w)
+        poly1.append(
+            affinity.rotate(
+                polygon, yaw, origin=Point((min_x, min_y)), use_radians=True
+            )
+        )
+
+    # get polygons for bboxes2
+    for i in range(N):
+        x, y, l, w, yaw = bboxes2[i, :]
+        dx = np.cos(yaw) * l - np.sin(yaw) * w
+        dy = np.sin(yaw) * l + np.cos(yaw) * w
+
+        min_x = x - dx / 2
+        min_y = y - dy / 2
+
+        polygon = box(min_x, min_y, min_x + l, min_y + w)
+        poly2.append(
+            affinity.rotate(
+                polygon, yaw, origin=Point((min_x, min_y)), use_radians=True
+            )
+        )
+
+    for i in range(M):
+        for j in range(N):
+            union[i, j] = poly1[i].union(poly2[j]).area
+            intersection[i, j] = poly1[i].intersection(poly2[j]).area
+
+    return intersection / union
+
+
+if __name__ == "__main__":
+    a, b = np.zeros((5, 5)), np.zeros((5, 5))
+    a = np.array([[0.0, 0.0, 2.0, 1.0, 0.0]])
+    b = np.array([[1.0, 0.0, 2.0, 1.0, 0.0]])
+    iou_2d(a, b)

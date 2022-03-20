@@ -10,11 +10,13 @@ def test_iou_2d() -> None:
     iou_mat = iou_2d(bboxes_a, bboxes_b)
     exp_iou_mat = np.array([[1 / 3.0, 0.5 / 3.5], [0.5 / 3.5, 0.0]])
     np.testing.assert_allclose(iou_mat, exp_iou_mat, atol=1e-5)
+    print("\ntest1 passed")
 
     # test 2
     iou_mat = iou_2d(bboxes_a, bboxes_a)
     exp_iou_mat = np.array([[1.0, 1 / 3.0], [1 / 3.0, 1.0]])
     np.testing.assert_allclose(iou_mat, exp_iou_mat, atol=1e-5)
+    print("test2 passed")
 
     # test 3
     bboxes_a = np.array(
@@ -32,3 +34,4 @@ def test_iou_2d() -> None:
         1 + 2 * (1 - 0.5 * np.sqrt(2)) ** 2
     )
     np.testing.assert_allclose(iou_mat, exp_iou_mat)
+    print("test3 passed")
