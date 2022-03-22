@@ -17,7 +17,24 @@ def greedy_matching(cost_matrix: np.ndarray) -> Tuple[List, List]:
         assignment corresponds to costs[0, 3], costs[1, 1] and costs[2, 0].
     """
     # TODO: Replace this stub code.
-    row_ids = [], col_ids = []
+    M, N = cost_matrix.shape[0], cost_matrix.shape[1]
+    min_values = np.dstack(np.unravel_index(np.argsort(cost_matrix.ravel()), (M, N)))[0]
+    i_set, j_set = set(), set()
+    row_ids, col_ids = [], []
+
+    count = 0
+    max_count = min(M, N)
+    for i in range(min_values.shape[0]):
+        if count == max_count:
+            break
+        min_i, min_j = min_values[i]
+        if min_i not in i_set and min_j not in j_set:
+            i_set.add(min_i)
+            j_set.add(min_j)
+            row_ids.append(min_i)
+            col_ids.append(min_j)
+            count += 1
+
     return row_ids, col_ids
 
 
@@ -38,5 +55,5 @@ def hungarian_matching(cost_matrix: np.ndarray) -> Tuple[List, List]:
         assignment corresponds to costs[0, 3], costs[1, 1] and costs[2, 0].
     """
     # TODO: Replace this stub code.
-    row_ids = [], col_ids = []
-    return row_ids, col_ids
+    row_ids, col_ids = linear_sum_assignment(cost_matrix)
+    return list(row_ids), list(col_ids)
