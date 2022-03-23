@@ -176,12 +176,18 @@ class Matching:
     def compute_motp(self) -> float:
         """Multiple object tracking precision"""
         # TODO: Replace this stub code.
-        return 0.0
+        dist_sum = sum([sum(dist) for dist in self.matched_dists_list])
+        return dist_sum / sum(self.num_matches_list)
 
     def compute_mota(self) -> float:
         """Multiple object tracking accuracy"""
         # TODO: Replace this stub code.
-        return 0.0
+        # double check
+        misses = sum(self.num_misses_list)
+        fps = sum(self.num_false_positives_list)
+        mismatches = sum(self.num_mismatches_list)
+        GTs = sum([len(dic.keys()) for dic in self.matchings_list]) + misses
+        return 1 - ((misses + fps + mismatches) / GTs)
 
     def compute_gt_coverage_percentage(
         self, det_tracklets: Tracklets
