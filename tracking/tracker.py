@@ -75,7 +75,7 @@ class Tracker:
         """
         # TODO: Replace this stub code by invoking self.cost_matrix and greedy_matching
         M, N = bboxes1.shape[0], bboxes2.shape[0]
-        cost_mat = cost_matrix(bboxes1, bboxes2)
+        cost_mat = self.cost_matrix(bboxes1, bboxes2)
         assign_matrix = torch.zeros((M, N))
 
         row_ids, col_ids = greedy_matching(cost_mat)
@@ -100,7 +100,7 @@ class Tracker:
         """
         # TODO: Replace this stub code by invoking self.cost_matrix and hungarian_matching
         M, N = bboxes1.shape[0], bboxes2.shape[0]
-        cost_mat = cost_matrix(bboxes1, bboxes2)
+        cost_mat = self.cost_matrix(bboxes1, bboxes2)
         assign_matrix = torch.zeros((M, N))
 
         row_ids, col_ids = hungarian_matching(cost_mat)
@@ -135,7 +135,7 @@ class Tracker:
             raise ValueError(f"Unknown association method {self.associate_method}")
 
         # TODO: Filter out matches with costs >= self.match_th
-        mask = cost_matrix > self.match_th
+        mask = cost_matrix < self.match_th
         assign_matrix *= mask
 
         return assign_matrix, cost_matrix

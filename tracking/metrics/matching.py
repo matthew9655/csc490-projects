@@ -186,7 +186,7 @@ class Matching:
         misses = sum(self.num_misses_list)
         fps = sum(self.num_false_positives_list)
         mismatches = sum(self.num_mismatches_list)
-        GTs = sum([len(dic.keys()) for dic in self.matchings_list]) + misses
+        GTs = sum(self.num_matches_list) + misses
         return 1 - ((misses + fps + mismatches) / GTs)
 
     def compute_gt_coverage_percentage(
