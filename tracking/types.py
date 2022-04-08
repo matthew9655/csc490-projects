@@ -48,6 +48,13 @@ class SingleTracklet:
         self.bboxes_traj.append(new_bbox)
         self.scores.append(new_score)
 
+    def prepend_new_observation(
+        self, new_frame_id: int, new_bbox: torch.Tensor, new_score: float
+    ):
+        self.frame_ids = [new_frame_id] + self.frame_ids
+        self.bboxes_traj = [new_bbox] + self.bboxes_traj
+        self.scores = [new_score] + self.scores
+
 
 class Tracklets:
     """Class to store mappings between object IDs and the associated tracklet."""
