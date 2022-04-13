@@ -1,13 +1,16 @@
 import os
 import pickle
+from traceback import FrameSummary
 
 import matplotlib.pyplot as plt
+import numpy as np
 from tqdm import tqdm
 
 from detection.modules.voxelizer import VoxelizerConfig
 from detection.pandaset.dataset import PandasetConfig
 from detection.pandaset.util import LabelClass
 from tracking.dataset import OfflineTrackingDataset
+from tracking.improved import occlusion_handler
 from tracking.metrics.evaluator import Evaluator
 from tracking.tracker import Tracker
 from tracking.types import AssociateMethod, Tracklets
@@ -19,6 +22,7 @@ def track(
     detection_path="tracking/detection_results/csc490_detector",
     result_path="tracking/tracking_results/results.pkl",
     tracker_associate_method=AssociateMethod.HUNGARIAN,
+    improved=False,
 ):
     print(f"Loading Pandaset from {dataset_path}")
     print(f"Loading dumped detection results from {detection_path}")
@@ -48,7 +52,32 @@ def track(
             track_steps=80, associate_method=AssociateMethod(tracker_associate_method)
         )
         tracker.track(tracking_inputs.bboxes, tracking_inputs.scores)
-        tracking_pred = Tracklets(tracker.tracks)
+        track_keys = tracker.tracks.keys()
+        # for key in track_keys:
+        #     curr_frame_ids = tracker.tracks[key].bboxes_traj
+        #     print(curr_frame_ids)
+        #     count = curr_frame_ids[0]
+        #     for i in range(1, len(curr_frame_ids)):
+        #         if curr_frame_ids[i] != count + 1:
+        #             print("occlusion")
+        #         count += 1
+
+        if improved:
+            oh = occlusion_handler(tracker.tracks)
+            oh.union()
+            oh.fill()
+            for key in track_keys:
+                curr_frame_ids = oh.tracks[key].frame_ids
+                # print(curr_frame_ids)
+                # count = curr_frame_ids[0]
+                # for i in range(1, len(curr_frame_ids)):
+                #     if curr_frame_ids[i] != count + 1:
+                #         print("occlusion")
+                #     count += 1
+            tracking_pred = Tracklets(oh.tracks)
+        else:
+            tracking_pred = Tracklets(tracker.tracks)
+
         save_dict = {
             "sequence_id": seq_id,
             "tracking_label": tracking_label,
@@ -69,12 +98,17 @@ def visualize(result_path="tracking/tracking_results/results.pkl"):
     with open(result_path, "rb") as f:
         results_dict = pickle.load(f)
 
+    np.random.seed(0)
+
     for seq_id, result_dict in tqdm(results_dict.items()):
         tracking_label = result_dict["tracking_label"]
         tracking_pred = result_dict["tracking_pred"]
+        num_actors = len(tracking_pred.tracks.keys())
+        colors = np.random.rand(num_actors, 3)
         fig, _ = plot_tracklets(
             tracking_pred,
             title=f"Estimated Tracklets for Pandaset Log{seq_id:03d} in World Frame",
+            colors=colors,
         )
         fig.savefig(
             os.path.join(viz_path, f"log{seq_id:03d}_track_est.png"),
@@ -82,6 +116,7 @@ def visualize(result_path="tracking/tracking_results/results.pkl"):
         fig, _ = plot_tracklets(
             tracking_label,
             title=f"Ground-Truth Tracklets for Pandaset Log{seq_id:03d} in World Frame",
+            colors=colors,
         )
         fig.savefig(os.path.join(viz_path, f"log{seq_id:03d}_track_gt.png"))
         plt.close("all")

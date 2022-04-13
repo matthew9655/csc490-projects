@@ -10,7 +10,10 @@ from tracking.types import TrackingInputs, Tracklets
 
 
 def plot_tracklets(
-    tracklets: Tracklets, figsize: Tuple[int, int] = (12, 8), title: str = ""
+    tracklets: Tracklets,
+    figsize: Tuple[int, int] = (12, 8),
+    title: str = "",
+    colors=None,
 ) -> Tuple[Figure, Axes]:
     """Plots all tracklets in one Pandaset sequence.
 
@@ -23,10 +26,8 @@ def plot_tracklets(
     fig, ax = plt.subplots(figsize=figsize, dpi=200)
 
     # Plot tracking labels
+    color_count = 0
     for actor_id, tracklet in tracklets.tracks.items():
-        color = np.random.rand(
-            3,
-        )
         for idx, bbox in enumerate(tracklet.bboxes_traj):
             x, y = bbox[:2]
             desc = actor_id if idx == 0 else None
@@ -36,12 +37,13 @@ def plot_tracklets(
                     (x, y),
                     1,
                     1,
-                    edgecolor=color,
+                    edgecolor=colors[color_count],
                     facecolor="none",
                     lw=1,
                     # label=desc,
                 )
             )
+        color_count += 1
     # Set axis options
     ax.set_xlim([-10, 550])
     ax.set_ylim([-10, 400])
