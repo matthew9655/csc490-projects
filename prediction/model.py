@@ -29,11 +29,18 @@ class PredictionModel(nn.Module):
     def __init__(self, config: PredictionModelConfig) -> None:
         super().__init__()
 
-        # TODO: Implement
-        # self._encoder = FILL IN
 
-        # TODO: Implement
-        # self._decoder = FILL IN
+        W = PredictionModelConfig.num_history_timesteps 
+        F = 3
+        N = 10
+        self._encoder = nn.Sequential(
+        nn.Linear(F*W, 32), 
+        nn.Linear(32, 64), 
+        nn.Linear(64, 128))
+
+        self._decoder = nn.Sequential(nn.Linear(128, 64),
+        nn.Linear(64, 32),
+        nn.Linear(32, 2*N))
 
     @staticmethod
     def _preprocess(x_batches: List[Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
