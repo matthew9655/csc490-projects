@@ -30,10 +30,16 @@ class PredictionModel(nn.Module):
         super().__init__()
 
         # TODO: Implement
-        # self._encoder = FILL IN
+        self._encoder = nn.Sequential(nn.Flatten(),
+        nn.Linear(2, 64), 
+        nn.ReLU(),
+        nn.Linear(64, 128),
+        nn.ReLU())
 
         # TODO: Implement
-        # self._decoder = FILL IN
+        self._decoder = nn.Sequential(nn.Linear(128, 128),
+        nn.ReLU(),
+        nn.Linear(128, 32))
 
     @staticmethod
     def _preprocess(x_batches: List[Tensor]) -> Tuple[Tensor, Tensor, Tensor]:
