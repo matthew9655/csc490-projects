@@ -23,6 +23,9 @@ def track(
     result_path="tracking/tracking_results/results.pkl",
     tracker_associate_method=AssociateMethod.HUNGARIAN,
     improved=False,
+    degree_thres=70,
+    score_thres=1.0,
+    divider=5,
 ):
     print(f"Loading Pandaset from {dataset_path}")
     print(f"Loading dumped detection results from {detection_path}")
@@ -43,6 +46,11 @@ def track(
     print(
         f"Tracking with association method {AssociateMethod(tracker_associate_method)}"
     )
+    if improved:
+        print(
+            f"occlusion handler hyperparams: degrees:{degree_thres}, score_thres:{score_thres}, divider:{divider}"
+        )
+
     tracking_results = {}
     for tracking_data in tqdm(tracking_dataset):
         seq_id = tracking_data.sequence_id
@@ -63,17 +71,22 @@ def track(
         #         count += 1
 
         if improved:
-            oh = occlusion_handler(tracker.tracks)
+            oh = occlusion_handler(
+                tracker.tracks,
+                rad_thres=degree_thres * np.pi / 180,
+                score_thres=score_thres,
+                dist_score_divider=divider,
+            )
             oh.union()
             oh.fill()
-            for key in track_keys:
-                curr_frame_ids = oh.tracks[key].frame_ids
-                # print(curr_frame_ids)
-                # count = curr_frame_ids[0]
-                # for i in range(1, len(curr_frame_ids)):
-                #     if curr_frame_ids[i] != count + 1:
-                #         print("occlusion")
-                #     count += 1
+            # for key in track_keys:
+            #     curr_frame_ids = oh.tracks[key].frame_ids
+            #     # print(curr_frame_ids)
+            #     # count = curr_frame_ids[0]
+            #     # for i in range(1, len(curr_frame_ids)):
+            #     #     if curr_frame_ids[i] != count + 1:
+            #     #         print("occlusion")
+            #     #     count += 1
             tracking_pred = Tracklets(oh.tracks)
         else:
             tracking_pred = Tracklets(tracker.tracks)

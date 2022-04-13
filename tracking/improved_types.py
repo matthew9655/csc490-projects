@@ -39,8 +39,11 @@ class track_stats:
         self.end = track.frame_ids[-1]
         self.n = len(track.frame_ids)
 
+        self.avg_x = sum([bbox[0] for bbox in track.bboxes_traj]) / self.n
+        self.avg_y = sum([bbox[1] for bbox in track.bboxes_traj]) / self.n
         self.avg_l = sum([bbox[2] for bbox in track.bboxes_traj]) / self.n
         self.avg_w = sum([bbox[3] for bbox in track.bboxes_traj]) / self.n
+        self.avg_yaw = sum([bbox[4] for bbox in track.bboxes_traj]) / self.n
 
     def __len__(self):
         return len(self.track.frame_ids)

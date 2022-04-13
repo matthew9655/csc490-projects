@@ -1,12 +1,10 @@
 from audioop import add
 from collections import defaultdict
-from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
 
 from tracking.improved_types import UnionFind, intersect_point, line_func, track_stats
-from tracking.types import ActorID, AssociateMethod, SingleTracklet
 
 # hyperparameters
 # num frames to be official
@@ -15,14 +13,15 @@ from tracking.types import ActorID, AssociateMethod, SingleTracklet
 
 
 class occlusion_handler:
-    def __init__(self, tracks):
+    def __init__(
+        self, tracks, rad_thres=70 * np.pi / 180, score_thres=1, dist_score_divider=5
+    ):
         self.total_frames = 80
         self.min_frames = 1
-        self.car_size_thres = 0.25
-        self.frame_diff_thres = 5
-        self.score_thres = 1
-        self.rad_thres = 70 * np.pi / 180
+        self.score_thres = score_thres
+        self.rad_thres = rad_thres
         self.tracks = tracks
+        self.dist_score_divider = dist_score_divider
 
         self.target_stats = {}
         self.chosen_stats = {}
@@ -32,15 +31,30 @@ class occlusion_handler:
         length_score = np.sqrt(
             (track1.avg_l - track2.avg_l) ** 2 + (track1.avg_w - track2.avg_w) ** 2
         )
-        before = False
         if track1.start < track2.start:
             frame_dist_score = track2.start - track1.start
-            before = True
         else:
             frame_dist_score = track1.start - track2.end
-        frame_dist_score /= self.total_frames / 10
+        frame_dist_score /= self.dist_score_divider
 
-        return length_score + frame_dist_score, before
+        return length_score + frame_dist_score
+
+    def score1(self, track1, track2):
+        length_score = np.sqrt(
+            (track1.avg_l - track2.avg_l) ** 2 + (track1.avg_w - track2.avg_w) ** 2
+        )
+        # position_score = np.sqrt(
+        #     (track1.avg_x - track2.avg_x) ** 2 + (track1.avg_y - track2.avg_y) ** 2
+        # ) / 10
+        yaw_score = np.sqrt((track1.avg_yaw - track2.avg_yaw) ** 2)
+
+        if track1.start < track2.start:
+            frame_dist_score = track2.start - track1.start
+        else:
+            frame_dist_score = track1.start - track2.end
+        frame_dist_score /= self.dist_score_divider
+
+        return length_score + position_score + yaw_score + frame_dist_score
 
     def interp(self, target_bbox, chosen_bbox, track_diff):
         target_bbox = target_bbox.numpy()
@@ -196,7 +210,7 @@ class occlusion_handler:
                 if ovalues.start <= uvalues.start <= ovalues.end:
                     continue
 
-                curr_score, before_start = self.score(uvalues, ovalues)
+                curr_score = self.score1(uvalues, ovalues)
                 if curr_score < min_score:
                     min_score = curr_score
                     min_okey = okey
