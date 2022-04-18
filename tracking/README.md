@@ -4,7 +4,7 @@ We chose to tackle the occulusion handling problem. The class for the occlusion 
 
 ## Running the Code
 
-To do a hyperparameter sweep, you can either run `./run-serial.sh` or `./run_parallel.sh` if you have gnu-parallel.
+To do a hyperparameter sweep, you can either run `./run-serial.sh {pandaset datset path}` or `./run_parallel.sh {pandaset dataset path}` if you have gnu-parallel.
 
 ### Serial
 
