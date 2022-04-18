@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 
 class UnionFind:
@@ -49,6 +48,9 @@ class track_stats:
         return len(self.track.frame_ids)
 
 
+### Helper functions
+
+
 def line_func(start_x, start_y, yaw):
     m = np.tan(yaw)
     c = start_y - m * start_x
@@ -58,3 +60,11 @@ def line_func(start_x, start_y, yaw):
 def intersect_point(m1, m2, c1, c2):
     """using cramer's rule to return x, y"""
     return (c2 - c1) / (m1 - m2), ((c1 * m2) - (c2 * m1)) / (m1 - m2)
+
+
+def get_yaw(x1, y1, x2, y2):
+    """
+    get yaw based on gradient
+    """
+    m = (y1 - y2) / (x1 - x2)
+    return np.arctan(m)
