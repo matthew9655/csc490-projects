@@ -1,6 +1,7 @@
 #!/bin/bash
 filename="results"
 
+mkdir -p tracking/tracking_results
 mkdir -p ${filename}
 
 degrees=(60)
