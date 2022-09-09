@@ -40,4 +40,4 @@
    unzip pandaset_0.zip -d <your_path_to_dataset>
    ```
    ## Improved Tracker
-   please cd into tracking to see instructions on how to run the improved tracker
+   please cd into `tracking` to see instructions on how to run the improved tracker
